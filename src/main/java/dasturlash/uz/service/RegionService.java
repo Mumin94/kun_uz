@@ -1,8 +1,10 @@
 package dasturlash.uz.service;
 
 import dasturlash.uz.dto.request.RegionRequestDTO;
+import dasturlash.uz.dto.response.LocalizedNameResponseDTO;
 import dasturlash.uz.dto.response.RegionResponseDTO;
 import dasturlash.uz.entity.Region;
+import dasturlash.uz.enums.Language;
 import dasturlash.uz.exception.ResourceNotFoundException;
 import dasturlash.uz.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +61,22 @@ public class RegionService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
         Page<Region> result = regionRepository.findAllByVisibleTrue(pageable);
         return result.map(this::toDTO);
+    }
+
+    public List<LocalizedNameResponseDTO> getByLanguage(Language language) {
+        return regionRepository.findAllByVisibleTrueOrderByOrderNumberAscIdAsc().stream().map(entity -> {
+            LocalizedNameResponseDTO response = new LocalizedNameResponseDTO();
+
+            response.setId(entity.getId());
+            response.setOrderNumber(entity.getOrderNumber());
+            response.setName(switch (language) {
+                case UZ -> entity.getNameUz();
+                case RU -> entity.getNameRu();
+                case EN -> entity.getNameEn();
+            });
+
+            return response;
+        }).toList();
     }
 
 

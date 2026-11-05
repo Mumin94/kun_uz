@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8080/api/v1/articles
-@articleId = REPLACE_WITH_PUBLISHED_ARTICLE_UUID
+@articleId = 902e2300-fe0b-4201-a56b-b1a0cc7b2d0e
 @typeId = 2
 @regionId = 2
 @categoryId = 2

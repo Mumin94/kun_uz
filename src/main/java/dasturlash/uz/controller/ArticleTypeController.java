@@ -2,6 +2,8 @@ package dasturlash.uz.controller;
 
 import dasturlash.uz.dto.request.ArticleTypeRequestDTO;
 import dasturlash.uz.dto.response.ArticleTypeResponseDTO;
+import dasturlash.uz.dto.response.LocalizedNameResponseDTO;
+import dasturlash.uz.enums.Language;
 import dasturlash.uz.service.ArticleTypeService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -11,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/article-types")
@@ -46,5 +50,10 @@ public class ArticleTypeController {
     public ResponseEntity<Page<ArticleTypeResponseDTO>> getAll(@Min(1) @RequestParam(defaultValue = "1") int page, @Min(1) @Max(100) @RequestParam(defaultValue = "10") int size) {
         Page<ArticleTypeResponseDTO> articleTypes = articleTypeService.getAll(page - 1, size);
         return ResponseEntity.ok(articleTypes);
+    }
+
+    @GetMapping("/lang")
+    public ResponseEntity<List<LocalizedNameResponseDTO>> getByLanguage(@RequestParam(defaultValue = "UZ") Language language) {
+        return ResponseEntity.ok(articleTypeService.getByLanguage(language));
     }
 }
