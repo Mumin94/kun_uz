@@ -1,0 +1,54 @@
+@baseUrl = http://localhost:8080/api/v1
+@resource = article-types
+@id = 1
+
+### Create — expect 201
+POST {{baseUrl}}/{{resource}}
+Content-Type: application/json
+
+{
+  "orderNumber": 1,
+  "nameUz": "Asosiy",
+  "nameRu": "Главное",
+  "nameEn": "Main"
+}
+
+### Get by ID — expect 200
+GET {{baseUrl}}/{{resource}}/{{id}}
+
+### Update — expect 200
+PUT {{baseUrl}}/{{resource}}/{{id}}
+Content-Type: application/json
+
+{
+  "orderNumber": 2,
+  "nameUz": "Muharrir tanlovi",
+  "nameRu": "Выбор редакции",
+  "nameEn": "Editor's choice"
+}
+
+### Get paginated list — expect 200
+GET {{baseUrl}}/{{resource}}?page=1&size=10
+
+### Create with invalid fields — expect 400
+POST {{baseUrl}}/{{resource}}
+Content-Type: application/json
+
+{
+  "orderNumber": 0,
+  "nameUz": "",
+  "nameRu": "Главное",
+  "nameEn": "Main"
+}
+
+### Get with invalid page — expect 400
+GET {{baseUrl}}/{{resource}}?page=0&size=10
+
+### Soft delete — expect 204
+DELETE {{baseUrl}}/{{resource}}/{{id}}
+
+### Get deleted record — expect 404
+GET {{baseUrl}}/{{resource}}/{{id}}
+
+### List after deletion — expect deleted record excluded
+GET {{baseUrl}}/{{resource}}?page=1&size=10

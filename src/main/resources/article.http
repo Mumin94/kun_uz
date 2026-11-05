@@ -1,0 +1,118 @@
+### Create article - expect 201
+POST http://localhost:8080/api/v1/articles
+Content-Type: application/json
+ProfileId: 3
+
+{
+  "imageId": "test-image",
+  "regionId": 2,
+  "categoryId": 2,
+  "articleTypeIds": [2],
+  "translations": [
+    {
+      "language": "UZ",
+      "title": "Yangi kutubxona ochildi",
+      "description": "Toshkentda yangi kutubxona ochildi.",
+      "content": "Yangi kutubxona tashrif buyuruvchilar uchun ochildi."
+    },
+    {
+      "language": "UZ",
+      "title": "New library opens",
+      "description": "A new library has opened in Tashkent.",
+      "content": "The new library is now open to visitors."
+    }
+  ]
+}
+
+
+### Update article - expect 200
+PUT http://localhost:8080/api/v1/articles/aeb965a3-0d2d-45f8-9a0a-8518f241c08e
+Content-Type: application/json
+ProfileId: 3
+
+{
+  "imageId": "updated-test-image",
+  "regionId": 2,
+  "categoryId": 2,
+  "articleTypeIds": [2],
+  "translations": [
+    {
+      "language": "UZ",
+      "title": "Kutubxona haqida yangilangan xabar",
+      "description": "Kutubxona haqida yangi ma’lumotlar.",
+      "content": "Kutubxonaning ish vaqti yangilandi."
+    },
+    {
+      "language": "EN",
+      "title": "Updated library news",
+      "description": "New information about the library.",
+      "content": "The library opening hours have been updated."
+    }
+  ]
+}
+
+### Create publisher - expect 201
+POST http://localhost:8080/api/v1/profiles
+Content-Type: application/json
+
+{
+  "name": "Daniel",
+  "surname": "Carter",
+  "email": "daniel.carter@example.com",
+  "phone": "+998901234580",
+  "password": "TestPassword123!",
+  "status": "ACTIVE",
+  "role": "PUBLISHER"
+}
+
+### Publish article - expect 200
+PATCH http://localhost:8080/api/v1/articles/902e2300-fe0b-4201-a56b-b1a0cc7b2d0e/status
+Content-Type: application/json
+ProfileId: 4
+
+{
+  "status": "PUBLISHED"
+}
+
+### Unpublish article - expect 200
+PATCH http://localhost:8080/api/v1/articles/aeb965a3-0d2d-45f8-9a0a-8518f241c08e/status
+Content-Type: application/json
+ProfileId: 4
+
+{
+  "status": "NOT_PUBLISHED"
+}
+
+### Soft delete article - expect 204
+DELETE http://localhost:8080/api/v1/articles/aeb965a3-0d2d-45f8-9a0a-8518f241c08e
+ProfileId: 3
+
+### Delete already hidden article - expect 404
+DELETE http://localhost:8080/api/v1/articles/aeb965a3-0d2d-45f8-9a0a-8518f241c08e
+ProfileId: 3
+
+### Latest 5 published articles by type
+GET http://localhost:8080/api/v1/articles/types/2/latest-5?language=UZ
+
+### Latest 3 published articles by type
+GET http://localhost:8080/api/v1/articles/types/2/latest-3?language=EN
+
+### Latest 8 published articles - expect 200
+POST http://localhost:8080/api/v1/articles/latest-8/excluding?language=UZ
+Content-Type: application/json
+
+{
+  "excludedIds": ["902e2300-fe0b-4201-a56b-b1a0cc7b2d0e"]
+}
+
+### Get full article in Uzbek - expect 200
+GET http://localhost:8080/api/v1/articles/902e2300-fe0b-4201-a56b-b1a0cc7b2d0e?language=UZ
+
+### Get full article in English - expect 200 if EN translation exists
+GET http://localhost:8080/api/v1/articles/902e2300-fe0b-4201-a56b-b1a0cc7b2d0e?language=EN
+
+### Latest 4 by type excluding one article - expect 200
+GET http://localhost:8080/api/v1/articles/types/2/latest-4?excludedId=902e2300-fe0b-4201-a56b-b1a0cc7b2d0e&language=UZ
+
+### Get 4 most-read articles - expect 200
+GET http://localhost:8080/api/v1/articles/most-read?language=UZ
