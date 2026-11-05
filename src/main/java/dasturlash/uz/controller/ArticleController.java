@@ -10,6 +10,10 @@ import dasturlash.uz.dto.response.ArticleShortResponseDTO;
 import dasturlash.uz.enums.Language;
 import dasturlash.uz.service.ArticleService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import dasturlash.uz.dto.request.ArticleFilterRequestDTO;
+import org.springframework.data.domain.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -74,4 +78,67 @@ public class ArticleController {
     public ResponseEntity<List<ArticleShortResponseDTO>> getMostRead4(@RequestParam(defaultValue = "UZ") Language language) {
         return ResponseEntity.ok(articleService.getMostRead4(language));
     }
+
+    @GetMapping("/tags/latest-4")
+    public ResponseEntity<List<ArticleShortResponseDTO>> getLatest4ByTag(
+            @RequestParam("tagName") String tagName,
+            @RequestParam(defaultValue = "UZ") Language language) {
+        return ResponseEntity.ok(articleService.getLatest4ByTag(tagName, language));
+    }
+
+    @GetMapping("/types/{typeId}/regions/{regionId}/latest-5")
+    public ResponseEntity<List<ArticleShortResponseDTO>> getLatest5ByTypeAndRegion(
+            @PathVariable("typeId") Integer typeId,
+            @PathVariable("regionId") Integer regionId,
+            @RequestParam(defaultValue = "UZ") Language language) {
+        return ResponseEntity.ok(articleService.getLatest5ByTypeAndRegion(typeId, regionId, language));
+    }
+
+    @GetMapping("/regions/{regionId}")
+    public ResponseEntity<Page<ArticleShortResponseDTO>> getByRegion(
+            @PathVariable("regionId") Integer regionId,
+            @RequestParam(defaultValue = "UZ") Language language,
+            @Min(1) @RequestParam(defaultValue = "1") int page,
+            @Min(1) @Max(100) @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(articleService.getByRegion(regionId, language, page - 1, size));
+    }
+
+    @GetMapping("/categories/{categoryId}/latest-5")
+    public ResponseEntity<List<ArticleShortResponseDTO>> getLatest5ByCategory(
+            @PathVariable("categoryId") Integer categoryId,
+            @RequestParam(defaultValue = "UZ") Language language) {
+        return ResponseEntity.ok(articleService.getLatest5ByCategory(categoryId, language));
+    }
+
+    @GetMapping("/categories/{categoryId}")
+    public ResponseEntity<Page<ArticleShortResponseDTO>> getByCategory(
+            @PathVariable("categoryId") Integer categoryId,
+            @RequestParam(defaultValue = "UZ") Language language,
+            @Min(1) @RequestParam(defaultValue = "1") int page,
+            @Min(1) @Max(100) @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(articleService.getByCategory(categoryId, language, page - 1, size));
+    }
+
+    @PatchMapping("/{id}/views")
+    public ResponseEntity<Void> increaseViewCount(@PathVariable("id") String id) {
+        articleService.increaseViewCount(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/shares")
+    public ResponseEntity<Void> increaseShareCount(@PathVariable("id") String id) {
+        articleService.increaseShareCount(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/filter")
+    public ResponseEntity<Page<ArticleShortResponseDTO>> filter(
+            @RequestHeader("ProfileId") Integer publisherId,
+            @Valid @RequestBody ArticleFilterRequestDTO request,
+            @RequestParam(defaultValue = "UZ") Language language,
+            @Min(1) @RequestParam(defaultValue = "1") int page,
+            @Min(1) @Max(100) @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(articleService.filter(request, language, page - 1, size, publisherId));
+    }
+
 }

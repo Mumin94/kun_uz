@@ -12,6 +12,9 @@ import dasturlash.uz.exception.ResourceNotFoundException;
 import dasturlash.uz.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -498,4 +501,91 @@ public class ArticleService {
 
         return response;
     }
+
+    // API 11
+    @Transactional(readOnly = true)
+    public List<ArticleShortResponseDTO> getLatest4ByTag(String tagName, Language language) {
+        if (tagName == null || tagName.isBlank() || tagName.strip().length() > 100) {
+            throw new BadRequestException("Tag name must contain between 1 and 100 characters.");
+        }
+        return publicPage(language, null, null, null, tagName.strip().toLowerCase(Locale.ROOT), 0, 4).getContent();
+    }
+
+    // API 12
+    @Transactional(readOnly = true)
+    public List<ArticleShortResponseDTO> getLatest5ByTypeAndRegion(Integer typeId, Integer regionId, Language language) {
+        getVisibleArticleTypes(Set.of(typeId));
+        requireRegion(regionId);
+        return publicPage(language, typeId, regionId, null, null, 0, 5).getContent();
+    }
+
+    // API 13; service pages are zero-based, API pages start at 1.
+    @Transactional(readOnly = true)
+    public Page<ArticleShortResponseDTO> getByRegion(Integer regionId, Language language, int page, int size) {
+        requireRegion(regionId);
+        return publicPage(language, null, regionId, null, null, page, size);
+    }
+
+    // API 14
+    @Transactional(readOnly = true)
+    public List<ArticleShortResponseDTO> getLatest5ByCategory(Integer categoryId, Language language) {
+        requireCategory(categoryId);
+        return publicPage(language, null, null, categoryId, null, 0, 5).getContent();
+    }
+
+    // API 15
+    @Transactional(readOnly = true)
+    public Page<ArticleShortResponseDTO> getByCategory(Integer categoryId, Language language, int page, int size) {
+        requireCategory(categoryId);
+        return publicPage(language, null, null, categoryId, null, page, size);
+    }
+
+    // APIs 16 and 17 use atomic database updates, avoiding lost increments.
+    @Transactional
+    public void increaseViewCount(String id) {
+        if (articleRepository.incrementViews(id, ArticleStatus.PUBLISHED) == 0) {
+            throw new ResourceNotFoundException("Published article not found: " + id);
+        }
+    }
+
+    @Transactional
+    public void increaseShareCount(String id) {
+        if (articleRepository.incrementShares(id, ArticleStatus.PUBLISHED) == 0) {
+            throw new ResourceNotFoundException("Published article not found: " + id);
+        }
+    }
+
+    // API 18 includes drafts for publisher review, but excludes soft-deleted articles.
+    @Transactional(readOnly = true)
+    public Page<ArticleShortResponseDTO> filter(ArticleFilterRequestDTO request, Language language, int page, int size, Integer publisherId) {
+        requireActiveRole(publisherId, ProfileRole.PUBLISHER);
+        if (request.getCreatedDateFrom() != null && request.getCreatedDateTo() != null && request.getCreatedDateFrom().isAfter(request.getCreatedDateTo())) {
+            throw new BadRequestException("Created date from must not be after date to.");
+        }
+        if (request.getPublishedDateFrom() != null && request.getPublishedDateTo() != null && request.getPublishedDateFrom().isAfter(request.getPublishedDateTo())) {
+            throw new BadRequestException("Published date from must not be after date to.");
+        }
+        return articleRepository.findAll(ArticleSpecifications.filter(request, language), articlePage(page, size)).map(article -> toShortDTO(article, language));
+    }
+
+    private Page<ArticleShortResponseDTO> publicPage(Language language, Integer typeId, Integer regionId, Integer categoryId, String tagName, int page, int size) {
+        Specification<Article> spec = ArticleSpecifications.publicArticles(language, typeId, regionId, categoryId, tagName);
+        return articleRepository.findAll(spec, articlePage(page, size)).map(article -> toShortDTO(article, language));
+    }
+
+    private PageRequest articlePage(int page, int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new BadRequestException("Page must be 1 or greater, and size must be between 1 and 100.");
+        }
+        return PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
+    }
+
+    private void requireRegion(Integer id) {
+        regionRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Region not found: " + id));
+    }
+
+    private void requireCategory(Integer id) {
+        categoryRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
+    }
+
 }

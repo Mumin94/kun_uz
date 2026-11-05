@@ -5,6 +5,8 @@ import dasturlash.uz.enums.ArticleStatus;
 import dasturlash.uz.enums.Language;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-public interface ArticleRepository extends JpaRepository<Article, String> {
+public interface ArticleRepository extends JpaRepository<Article, String>, JpaSpecificationExecutor<Article> {
     Optional<Article> findByIdAndVisibleTrue(String id);
 
     Optional<Article> findByIdAndVisibleTrueAndStatus(String id, ArticleStatus status);
@@ -111,4 +113,12 @@ public interface ArticleRepository extends JpaRepository<Article, String> {
     List<Article> findMostRead(@Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
 
 
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Article a set a.viewCount = a.viewCount + 1 where a.id = :id and a.visible = true and a.status = :status")
+    int incrementViews(@Param("id") String id, @Param("status") ArticleStatus status);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update Article a set a.sharedCount = a.sharedCount + 1 where a.id = :id and a.visible = true and a.status = :status")
+    int incrementShares(@Param("id") String id, @Param("status") ArticleStatus status);
 }
