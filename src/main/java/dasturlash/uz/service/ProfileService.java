@@ -1,9 +1,12 @@
 package dasturlash.uz.service;
 
 import dasturlash.uz.dto.request.ProfileCreateRequestDTO;
+import dasturlash.uz.dto.request.ProfileDetailUpdateRequestDTO;
+import dasturlash.uz.dto.request.ProfilePasswordUpdateRequestDTO;
 import dasturlash.uz.dto.request.ProfileUpdateRequestDTO;
 import dasturlash.uz.dto.response.ProfileResponseDTO;
 import dasturlash.uz.entity.Profile;
+import dasturlash.uz.exception.BadRequestException;
 import dasturlash.uz.exception.DuplicateResourceException;
 import dasturlash.uz.exception.ResourceNotFoundException;
 import dasturlash.uz.repository.ProfileRepository;
@@ -80,6 +83,23 @@ public class ProfileService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
         Page<Profile> result = profileRepository.findAllByVisibleTrue(pageable);
         return result.map(this::toDTO);
+    }
+
+    public ProfileResponseDTO updateDetail(Integer profileId, ProfileDetailUpdateRequestDTO request) {
+        Profile profile = profileRepository.findByIdAndVisibleTrue(profileId).orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
+        profile.setName(request.getName());
+        profile.setSurname(request.getSurname());
+        profileRepository.save(profile);
+        return toDTO(profile);
+    }
+
+    public void updatePassword (Integer profileId, ProfilePasswordUpdateRequestDTO request) {
+        Profile profile = profileRepository.findByIdAndVisibleTrue(profileId).orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), profile.getPassword())) {
+            throw new BadRequestException("Current password is incorrect.");
+        }
+        profile.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        profileRepository.save(profile);
     }
 
 

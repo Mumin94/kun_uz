@@ -1,5 +1,8 @@
 @baseUrl = http://localhost:8080/api/v1/profiles
 @id = 1
+@profileId = 3
+@currentPassword = TestPassword124!
+@newPassword = NewPassword456!
 
 ### Create profile - expect 201, no password in response
 POST {{baseUrl}}
@@ -152,4 +155,74 @@ Content-Type: application/json
   "password": "TestPassword123!",
   "status": "ACTIVE",
   "role": "USER"
+}
+
+### Update profile details - expect 200
+PUT http://localhost:8080/api/v1/profiles/detail
+Content-Type: application/json
+ProfileId: 3
+
+{
+  "name": "James",
+  "surname": "Wilson"
+}
+
+### Wrong current password - expect 400
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: {{profileId}}
+
+{
+  "currentPassword": "WrongPassword123!",
+  "newPassword": "{{newPassword}}"
+}
+
+### Change password successfully - expect 200
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: {{profileId}}
+
+{
+  "currentPassword": "{{currentPassword}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Old password no longer works - expect 400
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: {{profileId}}
+
+{
+  "currentPassword": "{{currentPassword}}",
+  "newPassword": "AnotherPassword789!"
+}
+
+### Short new password - expect 400
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: {{profileId}}
+
+{
+  "currentPassword": "{{newPassword}}",
+  "newPassword": "123"
+}
+
+### New password works; restore original password - expect 200
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: {{profileId}}
+
+{
+  "currentPassword": "{{newPassword}}",
+  "newPassword": "{{currentPassword}}"
+}
+
+### Missing profile - expect 404
+PUT {{baseUrl}}/password
+Content-Type: application/json
+ProfileId: 2147483647
+
+{
+  "currentPassword": "{{currentPassword}}",
+  "newPassword": "{{newPassword}}"
 }

@@ -1,0 +1,177 @@
+@baseUrl = http://localhost:8080/api/v1/auth
+@phone = +998901234597
+@email = henry.adams97@example.com
+
+# Copy codes from the SMS-service console before verification requests.
+@oldCode = REPLACE_WITH_FIRST_CODE
+@latestCode = REPLACE_WITH_RESENT_CODE
+
+### 1. Register - expect 201; sending attempt 1
+POST {{baseUrl}}/registration
+Content-Type: application/json
+
+{
+  "name": "Henry",
+  "surname": "Adams",
+  "email": "{{email}}",
+  "phone": "{{phone}}",
+  "password": "TestPassword123!"
+}
+
+### 2. Duplicate registration - expect 409
+POST {{baseUrl}}/registration
+Content-Type: application/json
+
+{
+  "name": "Henry",
+  "surname": "Adams",
+  "email": "{{email}}",
+  "phone": "{{phone}}",
+  "password": "TestPassword123!"
+}
+
+### 3. Invalid code format - expect 400
+POST {{baseUrl}}/verification
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "code": "123"
+}
+
+### 4. Resend - expect 200; sending attempt 2
+# Record this code as latestCode; keep the first code as oldCode.
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}"
+}
+
+### 5. Previous code - expect 400 if oldCode differs from latestCode
+POST {{baseUrl}}/verification
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "code": "{{oldCode}}"
+}
+
+### 6. Correct latest code - expect 200; run before its 2-minute expiry
+POST {{baseUrl}}/verification
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "code": "{{latestCode}}"
+}
+
+### 7. Repeated verification - expect 400
+POST {{baseUrl}}/verification
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "code": "{{latestCode}}"
+}
+
+### 8. Resend for active profile - expect 400
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}"
+}
+
+
+###RATE-LIMIT TEST: use another new profile.
+# Run requests 9-13 within one minute. Do not verify this profile.
+
+@limitPhone = +998901234598
+@limitEmail = george.miller98@example.com
+
+### 9. Register - expect 201; sending attempt 1
+POST {{baseUrl}}/registration
+Content-Type: application/json
+
+{
+  "name": "George",
+  "surname": "Miller",
+  "email": "{{limitEmail}}",
+  "phone": "{{limitPhone}}",
+  "password": "TestPassword123!"
+}
+
+### 10. Resend - expect 200; sending attempt 2
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}"
+}
+
+### 11. Resend - expect 200; sending attempt 3
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}"
+}
+
+### 12. Resend - expect 200; sending attempt 4
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}"
+}
+
+### 13. Fifth attempt - expect 400; no SMS sent
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}"
+}
+
+
+### EXPIRY TEST:
+# Copy the code from request 12, then wait at least 2 minutes
+# after that code was generated. Do not resend during the wait.
+
+@expiredCode = REPLACE_WITH_CODE_FROM_REQUEST_12
+
+### 14. Expired code - expect 400; profile remains NOT_ACTIVE
+POST {{baseUrl}}/verification
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}",
+  "code": "{{expiredCode}}"
+}
+
+### 15. Resend after waiting - expect 200
+POST {{baseUrl}}/resend
+Content-Type: application/json
+
+{
+  "phone": "{{limitPhone}}"
+}
+
+### Login - expect 200
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "phone": "+998901234597",
+  "password": "TestPassword123!"
+}
+
+### Wrong password - expect 400
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "phone": "+998901234597",
+  "password": "WrongPassword123!"
+}
