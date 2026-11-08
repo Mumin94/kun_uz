@@ -36,3 +36,5 @@ build/
 .DS_Store
 
 *.http
+talablar.txt
+src/main/resources/application.properties
