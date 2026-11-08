@@ -15,12 +15,16 @@ public class SmsClientService {
     private final RestClient restClient;
     @Value("${sms.service.base-url}")
     private String smsServiceBaseUrl;
+    @Value("${sms.service.client-id}")
+    private String clientId;
 
 
     public SmsSendResponseDTO send(SmsSendRequestDTO request) {
-        SmsSendResponseDTO result = restClient.post().uri(smsServiceBaseUrl + "/api/v1/sms/send").contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(SmsSendResponseDTO.class);
+        request.setClientId(clientId);
+        SmsSendResponseDTO result = restClient.post().uri(smsServiceBaseUrl + "/sms/send").contentType(MediaType.APPLICATION_JSON).body(request).retrieve().body(SmsSendResponseDTO.class);
         if (result == null) throw new BadRequestException("SMS service returned an empty response.");
-        if (!result.isSuccess()) throw new BadRequestException("SMS service could not accept the message.");
+        if (result.getId() == null || result.getId().isBlank()) throw new BadRequestException("SMS service could not accept the message.");
+        if (!"SENT".equals(result.getStatus())) throw new BadRequestException("SMS service did not confirm sending.");
         return result;
     }
 }

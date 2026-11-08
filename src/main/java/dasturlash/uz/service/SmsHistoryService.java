@@ -1,11 +1,9 @@
 package dasturlash.uz.service;
 
 import dasturlash.uz.dto.request.SmsSendRequestDTO;
-import dasturlash.uz.dto.response.SmsSendResponseDTO;
 import dasturlash.uz.entity.SmsHistory;
 import dasturlash.uz.enums.SmsStatus;
 import dasturlash.uz.exception.BadRequestException;
-import dasturlash.uz.exception.ResourceNotFoundException;
 import dasturlash.uz.repository.SmsHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,11 +44,11 @@ public class SmsHistoryService {
 
         SmsSendRequestDTO request = new SmsSendRequestDTO();
         request.setPhone(smsHistory.getPhone());
-        request.setMessage(smsHistory.getMessage());
-        SmsSendResponseDTO result = smsClientService.send(request);
+        request.setText(smsHistory.getMessage());
+        smsClientService.send(request);
 
-        smsHistory.setSent(result.isSuccess());
-        smsHistory.setMock(result.isMock());
+        smsHistory.setSent(true);
+        smsHistory.setMock(true);
         smsHistoryRepository.save(smsHistory);
     }
 
