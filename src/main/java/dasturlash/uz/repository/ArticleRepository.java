@@ -19,7 +19,7 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
 
     Optional<Article> findByIdAndVisibleTrueAndStatus(String id, ArticleStatus status);
 
-
+    // Use EXISTS for type and language matches without duplicate article rows.
     @Query("""
             SELECT a
             FROM Article a
@@ -42,7 +42,7 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
             """)
     List<Article> findLatestByType(@Param("typeId") Integer typeId, @Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
 
-
+    // Select localized visible articles with the supplied status, newest first.
     @Query("""
             SELECT a
             FROM Article a
@@ -58,6 +58,7 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
             """)
     List<Article> findLatestPublished(@Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
 
+    // Exclude supplied IDs; the service uses a separate query for an empty set.
     @Query("""
             SELECT a
             FROM Article a
@@ -74,6 +75,7 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
             """)
     List<Article> findLatestPublishedExcludingIds(@Param("excludedIds") Set<String> excludedIds, @Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
 
+    // Exclude the current article from its localized type list.
     @Query("""
             SELECT a
             FROM Article a
@@ -97,6 +99,7 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
             """)
     List<Article> findLatestByTypeExcludingId(@Param("typeId") Integer typeId, @Param("excludedId") String excludedId, @Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
 
+    // Rank by views, using creation time and ID to break ties.
     @Query("""
             SELECT a
             FROM Article a
@@ -111,8 +114,6 @@ public interface ArticleRepository extends JpaRepository<Article, String>, JpaSp
             ORDER BY a.viewCount DESC, a.createdDate DESC, a.id DESC
             """)
     List<Article> findMostRead(@Param("language") Language language, @Param("status") ArticleStatus status, Pageable pageable);
-
-
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Article a set a.viewCount = a.viewCount + 1 where a.id = :id and a.visible = true and a.status = :status")

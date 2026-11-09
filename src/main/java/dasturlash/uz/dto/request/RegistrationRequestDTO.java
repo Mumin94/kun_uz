@@ -1,9 +1,7 @@
 package dasturlash.uz.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import dasturlash.uz.enums.VerificationChannel;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,5 +27,8 @@ public class RegistrationRequestDTO {
     @NotBlank
     @Size(min = 8)
     private String password;
+
+    @NotNull
+    private VerificationChannel verificationChannel = VerificationChannel.SMS;
 
 }

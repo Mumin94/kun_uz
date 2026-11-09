@@ -22,6 +22,7 @@ import java.util.List;
 public class CategoryService {
     private final CategoryRepository categoryRepository;
 
+    // Create a visible record with its initial creation time.
     public CategoryResponseDTO create(CategoryRequestDTO request) {
         Category entity = new Category();
         entity.setOrderNumber(request.getOrderNumber());
@@ -35,11 +36,13 @@ public class CategoryService {
 
     }
 
+    // Find a visible record or report that it is missing.
     public CategoryResponseDTO getById(Integer id) {
         Category entity = categoryRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
         return toDTO(entity);
     }
 
+    // Update the visible record while preserving its creation time.
     public CategoryResponseDTO update(CategoryRequestDTO request, Integer id) {
         Category entity = categoryRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
         entity.setOrderNumber(request.getOrderNumber());
@@ -51,18 +54,21 @@ public class CategoryService {
 
     }
 
+    // Hide the record without deleting its database row.
     public void delete(Integer id) {
         Category entity = categoryRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
         entity.setVisible(false);
         categoryRepository.save(entity);
     }
 
+    // Return newest records first using zero-based service pagination.
     public Page<CategoryResponseDTO> getAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
         Page<Category> result = categoryRepository.findAllByVisibleTrue(pageable);
         return result.map(this::toDTO);
     }
 
+    // Select the requested language and sort by display order.
     public List<LocalizedNameResponseDTO> getByLanguage(Language language) {
         return categoryRepository.findAllByVisibleTrueOrderByOrderNumberAscIdAsc().stream().map(entity -> {
             LocalizedNameResponseDTO response = new LocalizedNameResponseDTO();
@@ -79,7 +85,6 @@ public class CategoryService {
         }).toList();
     }
 
-
     private CategoryResponseDTO toDTO(Category entity) {
         CategoryResponseDTO response = new CategoryResponseDTO();
         response.setId(entity.getId());
@@ -91,6 +96,5 @@ public class CategoryService {
         response.setVisible(entity.getVisible());
         return response;
     }
-
 
 }

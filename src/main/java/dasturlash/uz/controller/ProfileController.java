@@ -1,9 +1,6 @@
 package dasturlash.uz.controller;
 
-import dasturlash.uz.dto.request.ProfileCreateRequestDTO;
-import dasturlash.uz.dto.request.ProfileDetailUpdateRequestDTO;
-import dasturlash.uz.dto.request.ProfilePasswordUpdateRequestDTO;
-import dasturlash.uz.dto.request.ProfileUpdateRequestDTO;
+import dasturlash.uz.dto.request.*;
 import dasturlash.uz.dto.response.ProfileResponseDTO;
 import dasturlash.uz.service.ProfileService;
 import jakarta.validation.Valid;
@@ -59,5 +56,10 @@ public class ProfileController {
     public ResponseEntity<String> updatePassword(@RequestHeader("ProfileId") Integer profileId, @Valid @RequestBody ProfilePasswordUpdateRequestDTO request) {
         profileService.updatePassword(profileId, request);
         return ResponseEntity.ok("Password changed successfully.");
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<Page<ProfileResponseDTO>> filterProfile(@ModelAttribute ProfileFilterRequestDTO filter, @Min(1) @RequestParam(defaultValue = "1") int page, @Min(1) @Max(100) @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(profileService.filter(filter, page -1 , size));
     }
 }

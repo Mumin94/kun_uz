@@ -22,6 +22,7 @@ import java.util.List;
 public class RegionService {
     private final RegionRepository regionRepository;
 
+    // Create a visible record with its initial creation time.
     public RegionResponseDTO create(RegionRequestDTO request) {
         Region entity = new Region();
         entity.setOrderNumber(request.getOrderNumber());
@@ -35,11 +36,13 @@ public class RegionService {
 
     }
 
+    // Find a visible record or report that it is missing.
     public RegionResponseDTO getById(Integer id) {
         Region entity = regionRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Region not found: " + id));
         return toDTO(entity);
     }
 
+    // Update the visible record while preserving its creation time.
     public RegionResponseDTO update(RegionRequestDTO request, Integer id) {
         Region entity = regionRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Region not found: " + id));
         entity.setOrderNumber(request.getOrderNumber());
@@ -51,18 +54,21 @@ public class RegionService {
 
     }
 
+    // Hide the record without deleting its database row.
     public void delete(Integer id) {
         Region entity = regionRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Region not found: " + id));
         entity.setVisible(false);
         regionRepository.save(entity);
     }
 
+    // Return newest records first using zero-based service pagination.
     public Page<RegionResponseDTO> getAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
         Page<Region> result = regionRepository.findAllByVisibleTrue(pageable);
         return result.map(this::toDTO);
     }
 
+    // Select the requested language and sort by display order.
     public List<LocalizedNameResponseDTO> getByLanguage(Language language) {
         return regionRepository.findAllByVisibleTrueOrderByOrderNumberAscIdAsc().stream().map(entity -> {
             LocalizedNameResponseDTO response = new LocalizedNameResponseDTO();
@@ -79,7 +85,6 @@ public class RegionService {
         }).toList();
     }
 
-
     private RegionResponseDTO toDTO(Region entity) {
         RegionResponseDTO response = new RegionResponseDTO();
         response.setId(entity.getId());
@@ -91,6 +96,5 @@ public class RegionService {
         response.setVisible(entity.getVisible());
         return response;
     }
-
 
 }

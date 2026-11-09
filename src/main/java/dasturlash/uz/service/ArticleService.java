@@ -10,6 +10,7 @@ import dasturlash.uz.enums.ProfileStatus;
 import dasturlash.uz.exception.BadRequestException;
 import dasturlash.uz.exception.ResourceNotFoundException;
 import dasturlash.uz.repository.*;
+import dasturlash.uz.specification.ArticleSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
@@ -39,7 +40,7 @@ public class ArticleService {
     private final TagRepository tagRepository;
     private final ArticleTagRepository articleTagRepository;
 
-    // API 1: Create article
+    // Save a draft together with its translations, types, and tags.
     @Transactional
     public ArticleResponseDTO create(ArticleCreateRequestDTO request, Integer moderatorId) {
 
@@ -91,7 +92,7 @@ public class ArticleService {
         return toDTO(article);
     }
 
-    // API 2: Update article
+    // Return edited articles to draft and synchronize their related records.
     @Transactional
     public ArticleResponseDTO update(String id, ArticleUpdateRequestDTO request, Integer moderatorId) {
 
@@ -124,7 +125,7 @@ public class ArticleService {
         return toDTO(article);
     }
 
-    // API 3: Soft delete article
+    // Require a moderator and hide the article without removing its row.
     @Transactional
     public void delete(String id, Integer moderatorId) {
         requireActiveRole(moderatorId, ProfileRole.MODERATOR);
@@ -135,7 +136,7 @@ public class ArticleService {
         articleRepository.save(article);
     }
 
-    // API 4: Publish or unpublish article
+    // Set publisher and publication time only when publishing.
     @Transactional
     public ArticleResponseDTO changeStatus(String id, ArticleStatusUpdateRequestDTO request, Integer publisherId) {
 
@@ -162,21 +163,21 @@ public class ArticleService {
         return toDTO(article);
     }
 
-    // API 5: Latest 5 published articles by type
+    // Limit the public type list to five articles.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest5ByType(Integer typeId, Language language) {
 
         return getLatestByType(typeId, language, 5);
     }
 
-    // API 6: Latest 3 published articles by type
+    // Limit the public type list to three articles.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest3ByType(Integer typeId, Language language) {
 
         return getLatestByType(typeId, language, 3);
     }
 
-    // API 7: Latest 8 published articles excluding supplied IDs
+    // Select up to eight public articles outside the supplied ID set.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest8Excluding(ArticleExcludeRequestDTO request, Language language) {
 
@@ -192,7 +193,7 @@ public class ArticleService {
         return articles.stream().map(article -> toShortDTO(article, language)).toList();
     }
 
-    // API 8: Full published article by ID and language
+    // Require a published article and its requested translation.
     @Transactional(readOnly = true)
     public ArticleFullResponseDTO getByIdAndLanguage(String id, Language language) {
 
@@ -203,7 +204,7 @@ public class ArticleService {
         return toFullDTO(article, translation, language);
     }
 
-    // API 9: Latest 4 by type excluding one article
+    // Exclude the current article from related articles of the same type.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest4ByTypeExcluding(Integer typeId, String excludedId, Language language) {
 
@@ -214,7 +215,7 @@ public class ArticleService {
         return articles.stream().map(article -> toShortDTO(article, language)).toList();
     }
 
-    // API 10: Most-read 4 published articles
+    // Rank public articles by views, then creation time and ID.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getMostRead4(Language language) {
 
@@ -223,6 +224,7 @@ public class ArticleService {
         return articles.stream().map(article -> toShortDTO(article, language)).toList();
     }
 
+    // Validate the type before querying its localized public articles.
     private List<ArticleShortResponseDTO> getLatestByType(Integer typeId, Language language, int limit) {
 
         articleTypeRepository.findByIdAndVisibleTrue(typeId).orElseThrow(() -> new ResourceNotFoundException("Article type not found: " + typeId));
@@ -232,6 +234,7 @@ public class ArticleService {
         return articles.stream().map(article -> toShortDTO(article, language)).toList();
     }
 
+    // Require a visible, active profile with the specified role.
     private Profile requireActiveRole(Integer profileId, ProfileRole role) {
 
         Profile profile = profileRepository.findByIdAndVisibleTrue(profileId).orElseThrow(() -> new ResourceNotFoundException("Profile not found: " + profileId));
@@ -243,10 +246,12 @@ public class ArticleService {
         return profile;
     }
 
+    // Exclude hidden articles from management operations.
     private Article getVisibleArticle(String id) {
         return articleRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Article not found: " + id));
     }
 
+    // Resolve every supplied type and reject hidden or missing types.
     private List<ArticleType> getVisibleArticleTypes(Set<Integer> typeIds) {
 
         List<ArticleType> types = new ArrayList<>();
@@ -260,6 +265,7 @@ public class ArticleService {
         return types;
     }
 
+    // Reject repeated languages before saving translation rows.
     private void validateTranslationLanguages(List<ArticleTranslationRequestDTO> translations) {
 
         Set<Language> languages = new HashSet<>();
@@ -271,6 +277,7 @@ public class ArticleService {
         }
     }
 
+    // Reuse existing language rows and remove translations omitted by the update.
     private void updateTranslations(Article article, List<ArticleTranslationRequestDTO> requestedTranslations) {
 
         List<ArticleTranslation> existingTranslations = articleTranslationRepository.findAllByArticle_Id(article.getId());
@@ -303,6 +310,7 @@ public class ArticleService {
         }
     }
 
+    // Retain matching links and add only missing type links.
     private void updateArticleTypes(Article article, List<ArticleType> requestedTypes) {
 
         Set<Integer> requestedIds = new HashSet<>();
@@ -336,6 +344,7 @@ public class ArticleService {
         }
     }
 
+    // Normalize tag names, reuse tags, and synchronize article links.
     private void updateTags(Article article, Set<String> tagNames) {
         Set<String> normalizedNames = new HashSet<>();
 
@@ -382,6 +391,7 @@ public class ArticleService {
         }
     }
 
+    // Build the management response with type IDs and all translations.
     private ArticleResponseDTO toDTO(Article article) {
         ArticleResponseDTO response = new ArticleResponseDTO();
 
@@ -431,6 +441,7 @@ public class ArticleService {
         return response;
     }
 
+    // Select the requested translation for a compact public response.
     private ArticleShortResponseDTO toShortDTO(Article article, Language language) {
 
         ArticleTranslation translation = articleTranslationRepository.findByArticle_IdAndLanguage(article.getId(), language).orElseThrow(() -> new ResourceNotFoundException("Article translation not found: " + language));
@@ -450,6 +461,7 @@ public class ArticleService {
         return response;
     }
 
+    // Build localized article details and include linked tag names.
     private ArticleFullResponseDTO toFullDTO(Article article, ArticleTranslation translation, Language language) {
 
         ArticleFullResponseDTO response = new ArticleFullResponseDTO();
@@ -492,7 +504,7 @@ public class ArticleService {
 
         response.setCategory(categoryResponse);
 
-        // Requires ArticleLike integration.
+        // TODO ArticleLike integration.
         response.setLikeCount(null);
 
         List<String> tagNames = articleTagRepository.findAllByArticle_Id(article.getId()).stream().map(link -> link.getTag().getName()).sorted().toList();
@@ -502,7 +514,7 @@ public class ArticleService {
         return response;
     }
 
-    // API 11
+    // Normalize the tag before selecting up to four public articles.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest4ByTag(String tagName, Language language) {
         if (tagName == null || tagName.isBlank() || tagName.strip().length() > 100) {
@@ -511,7 +523,7 @@ public class ArticleService {
         return publicPage(language, null, null, null, tagName.strip().toLowerCase(Locale.ROOT), 0, 4).getContent();
     }
 
-    // API 12
+    // Require visible references and limit the combined public list to five.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest5ByTypeAndRegion(Integer typeId, Integer regionId, Language language) {
         getVisibleArticleTypes(Set.of(typeId));
@@ -519,28 +531,28 @@ public class ArticleService {
         return publicPage(language, typeId, regionId, null, null, 0, 5).getContent();
     }
 
-    // API 13; service pages are zero-based, API pages start at 1.
+    // Return a localized public page for a visible region.
     @Transactional(readOnly = true)
     public Page<ArticleShortResponseDTO> getByRegion(Integer regionId, Language language, int page, int size) {
         requireRegion(regionId);
         return publicPage(language, null, regionId, null, null, page, size);
     }
 
-    // API 14
+    // Select up to five localized public articles for a visible category.
     @Transactional(readOnly = true)
     public List<ArticleShortResponseDTO> getLatest5ByCategory(Integer categoryId, Language language) {
         requireCategory(categoryId);
         return publicPage(language, null, null, categoryId, null, 0, 5).getContent();
     }
 
-    // API 15
+    // Return a localized public page for a visible category.
     @Transactional(readOnly = true)
     public Page<ArticleShortResponseDTO> getByCategory(Integer categoryId, Language language, int page, int size) {
         requireCategory(categoryId);
         return publicPage(language, null, null, categoryId, null, page, size);
     }
 
-    // APIs 16 and 17 use atomic database updates, avoiding lost increments.
+    // Increment in the database to avoid losing concurrent view updates.
     @Transactional
     public void increaseViewCount(String id) {
         if (articleRepository.incrementViews(id, ArticleStatus.PUBLISHED) == 0) {
@@ -548,6 +560,7 @@ public class ArticleService {
         }
     }
 
+    // Increment in the database to avoid losing concurrent share updates.
     @Transactional
     public void increaseShareCount(String id) {
         if (articleRepository.incrementShares(id, ArticleStatus.PUBLISHED) == 0) {
@@ -555,7 +568,7 @@ public class ArticleService {
         }
     }
 
-    // API 18 includes drafts for publisher review, but excludes soft-deleted articles.
+    // Require a publisher and reject reversed date ranges before filtering.
     @Transactional(readOnly = true)
     public Page<ArticleShortResponseDTO> filter(ArticleFilterRequestDTO request, Language language, int page, int size, Integer publisherId) {
         requireActiveRole(publisherId, ProfileRole.PUBLISHER);
@@ -568,11 +581,13 @@ public class ArticleService {
         return articleRepository.findAll(ArticleSpecifications.filter(request, language), articlePage(page, size)).map(article -> toShortDTO(article, language));
     }
 
+    // Reuse public eligibility conditions for localized paginated lists.
     private Page<ArticleShortResponseDTO> publicPage(Language language, Integer typeId, Integer regionId, Integer categoryId, String tagName, int page, int size) {
         Specification<Article> spec = ArticleSpecifications.publicArticles(language, typeId, regionId, categoryId, tagName);
         return articleRepository.findAll(spec, articlePage(page, size)).map(article -> toShortDTO(article, language));
     }
 
+    // Validate page bounds and sort deterministically by creation time and ID.
     private PageRequest articlePage(int page, int size) {
         if (page < 0 || size < 1 || size > 100) {
             throw new BadRequestException("Page must be 1 or greater, and size must be between 1 and 100.");
@@ -580,10 +595,12 @@ public class ArticleService {
         return PageRequest.of(page, size, Sort.by("createdDate").descending().and(Sort.by("id").descending()));
     }
 
+    // Reject hidden or missing regions.
     private void requireRegion(Integer id) {
         regionRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Region not found: " + id));
     }
 
+    // Reject hidden or missing categories.
     private void requireCategory(Integer id) {
         categoryRepository.findByIdAndVisibleTrue(id).orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
     }

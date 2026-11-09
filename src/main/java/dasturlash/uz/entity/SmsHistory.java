@@ -43,7 +43,6 @@ public class SmsHistory {
     @Column(nullable = false)
     private boolean sent = false;
 
-    @Column(nullable = false)
-    private boolean mock = false;
+   
 
 }

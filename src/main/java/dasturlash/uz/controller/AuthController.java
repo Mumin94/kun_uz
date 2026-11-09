@@ -1,9 +1,6 @@
 package dasturlash.uz.controller;
 
-import dasturlash.uz.dto.request.LoginRequestDTO;
-import dasturlash.uz.dto.request.RegistrationRequestDTO;
-import dasturlash.uz.dto.request.SmsResendRequestDTO;
-import dasturlash.uz.dto.request.SmsVerificationRequestDTO;
+import dasturlash.uz.dto.request.*;
 import dasturlash.uz.dto.response.ProfileResponseDTO;
 import dasturlash.uz.service.AuthService;
 import jakarta.validation.Valid;
@@ -22,12 +19,12 @@ public class AuthController {
     @PostMapping("/registration")
     public ResponseEntity<String> registerUser(@Valid @RequestBody RegistrationRequestDTO request) {
         authService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Registration created. Verification code accepted by SMS service.");
+        return ResponseEntity.status(HttpStatus.CREATED).body("Registration created. Verification instructions sent.");
     }
 
     @PostMapping("/verification")
     public ResponseEntity<String> verification(@Valid @RequestBody SmsVerificationRequestDTO request) {
-        authService.verify(request);
+        authService.verifySms(request);
         return ResponseEntity.ok("Phone verified successfully.");
     }
 
@@ -40,5 +37,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ProfileResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @GetMapping("/email/verification")
+    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok("Email verified successfully.");
+    }
+
+    @PostMapping("/email/resend")
+    public ResponseEntity<String> resendEmail(@Valid @RequestBody EmailResendRequestDTO request){
+        authService.resendEmail(request);
+        return ResponseEntity.ok("Verification email sent.");
     }
 }
